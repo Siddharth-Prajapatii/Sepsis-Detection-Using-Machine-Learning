@@ -9,10 +9,13 @@ import seaborn as sns
 import pandas as pd
 import glob
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
+from sklearn.model_selection import train_test_split
+from sklearn import svm
+from sklearn.metrics import confusion_matrix
 
 
 # Get Data File Names
-path =r'C:\Users\91972\Desktop\Sepsis\training'
+path =r'C:\Sid\Sepsis Detection Using Machine Learning\training'
 filenames = glob.glob(path + "/*.psv")
 
 
@@ -22,7 +25,7 @@ df= []
 
 #-----------------Concating All PSV File Data into Dataset Variable------------
 for filename in filenames:
-    df.append(pd.read_csv(filename,sep='|'))
+    df.append(pd.read_csv(filename,sep='|',index_col=None))
 Dataset = pd.concat(df,axis=0,ignore_index=True)
 
 #-----------------Visualize Missing Values In Dataset--------------------------
@@ -192,13 +195,95 @@ Dataset=Dataset.drop(columns='Resp')
 Dataset=Dataset.drop(columns='Age') #We Are Going To Drop Attribute Age Here Because In Respiration Rate , Age Is Required.
 
 
+#---------Removing Missing Values----------------------------------------------
+Dataset=Dataset.dropna(axis=0, how='any', thresh=None, subset=None, inplace=False)
+
+
 
 #-----------------Dependent & Undependent Variable-----------------------------   
-X = Dataset.iloc[:,:-1].values
-y = Dataset.iloc[:, -1].values
+X=Dataset.drop(columns='SepsisLabel')
+y=Dataset['SepsisLabel']
+y=pd.DataFrame(data=y)
 
 
-#----------------One Hot Encoding----------------------------------------------
+#----------------One Hot & Label Encoding--------------------------------------
+labelencoder_X = LabelEncoder()
+X.iloc[:, -1] = labelencoder_X.fit_transform(X.iloc[:, -1])
+X.iloc[:, -2] = labelencoder_X.fit_transform(X.iloc[:, -2])
+X.iloc[:, -3] = labelencoder_X.fit_transform(X.iloc[:, -3])
+X.iloc[:, -4] = labelencoder_X.fit_transform(X.iloc[:, -4])
+X.iloc[:, -5] = labelencoder_X.fit_transform(X.iloc[:, -5])
+X.iloc[:, -6] = labelencoder_X.fit_transform(X.iloc[:, -6])
+
+onehotencoder1 = OneHotEncoder(categories='auto',drop=[0])
+custom_RESP = pd.DataFrame(onehotencoder1.fit_transform(X[['custom_RESP']]).toarray(),index=None)
+custom_RESP=custom_RESP.rename(columns={0: "custom_RESP_0",1: "custom_RESP_1"})
+print(custom_RESP.isnull().sum())
+
+onehotencoder2 = OneHotEncoder(categories='auto',drop=[0])
+custom_BP = pd.DataFrame(onehotencoder2.fit_transform(X[['custom_BP']]).toarray(),index=None)
+custom_BP=custom_BP.rename(columns={0: "custom_BP_0",1: "custom_BP_1",2: "custom_BP_2",3: "custom_BP_3"})
+print(custom_BP.isnull().sum())
+
+onehotencoder3 = OneHotEncoder(categories='auto',drop=[0])
+custom_O2STAT = pd.DataFrame(onehotencoder3.fit_transform(X[['custom_O2STAT']]).toarray(),index=None)
+custom_O2STAT=custom_O2STAT.rename(columns={0: "custom_O2STAT_0",1: "custom_O2STAT_1"})
+print(custom_O2STAT.isnull().sum())
+
+onehotencoder4 = OneHotEncoder(categories='auto',drop=[0])
+custom_AGE = pd.DataFrame(onehotencoder4.fit_transform(X[['custom_AGE']]).toarray(),index=None)
+custom_AGE=custom_AGE.rename(columns={0: "custom_AGE_0"})
+print(custom_AGE.isnull().sum())
+
+onehotencoder5 = OneHotEncoder(categories='auto',drop=[0])
+custom_TEMP = pd.DataFrame(onehotencoder5.fit_transform(X[['custom_TEMP']]).toarray(),index=None)
+custom_TEMP=custom_TEMP.rename(columns={0: "custom_TEMP_0",1: "custom_TEMP_1"})
+print(custom_TEMP.isnull().sum())
+
+onehotencoder6 = OneHotEncoder(categories='auto',drop=[0])
+custom_HR = pd.DataFrame(onehotencoder6.fit_transform(X[['custom_HR']]).toarray(),index=None)
+custom_HR=custom_HR.rename(columns={0: "custom_HR_0",1: "custom_HR_1"})
+print(custom_HR.isnull().sum())
+
+X=X.drop(columns='custom_RESP')
+X=X.drop(columns='custom_BP')
+X=X.drop(columns='custom_O2STAT')
+X=X.drop(columns='custom_AGE')
+X=X.drop(columns='custom_TEMP')
+X=X.drop(columns='custom_HR')
+print(X.isnull().sum())
+
+
+X=X.reset_index() #Reseting Index For Joing Below Dataframes 
+
+X=X.join(custom_RESP)
+X=X.join(custom_BP)
+X=X.join(custom_O2STAT)
+X=X.join(custom_AGE)
+X=X.join(custom_TEMP)
+X=X.join(custom_HR)
+
+
+
+#---------------Train & Test Splitting----------------------------------------- 
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.002, random_state = 0,train_size=0.008)
+
+
+
+#---------------SVM Classifier-------------------------------------------------
+svm_Clf = svm.SVC()
+svm_Clf.fit(X_train, y_train)
+y_pred=svm_Clf.predict(X_test)
+
+
+
+
+#---------------Confusion Matrix-----------------------------------------------
+
+
+
+
+
 
     
     
